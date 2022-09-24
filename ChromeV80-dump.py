@@ -1,14 +1,27 @@
-import json
+import json, os, sys, shutil, sqlite3, getopt
 from base64 import b64decode
 from win32crypt import CryptUnprotectData
 from Cryptodome.Cipher import AES
-import os
-import sys
-import shutil
-import sqlite3
 
-masterkeyPath = os.getenv("LOCALAPPDATA") + '\\Google\\Chrome Dev\\User Data\\Local State'
-loginDataPath = os.getenv("LOCALAPPDATA") + '\\Google\\Chrome Dev\\User Data\\Default\\Login Data'
+saveToFile = 0
+masterkeyPath = os.getenv("LOCALAPPDATA") + '\\Google\\Chrome\\User Data\\Local State'
+loginDataPath = os.getenv("LOCALAPPDATA") + '\\Google\\Chrome\\User Data\\Default\\Login Data'
+
+########## Get command line arguments ##########
+try:
+    opts, args = getopt.getopt(sys.argv[1:], "hi:o:", ["help", "input=", "output="])
+except:
+    sys.exit("USAGE: {0} -i <path to Chrome User Data directory> -o <output file>".format(sys.argv[0]))
+
+for opt, arg in opts:
+    if opt in ("-h", "--help"):
+        sys.exit("USAGE: {0} -i <path to Chrome User Data directory> -o <output file>".format(sys.argv[0]))
+    elif opt in ("-i", "--input"):
+        masterkeyPath = arg + '\\Local State'
+        loginDataPath = arg + '\\Default\\Login Data'
+    elif opt in ("-o", "--output"):
+        outputFile = open(arg, 'w')
+        saveToFile = 1
 
 ########## Decrypt passwords with AES MasterKey ##########
 def decryptPass(buff, key):
@@ -38,6 +51,10 @@ if os.path.exists(loginDataPath):
         output += url + ' | ' + login + ' | ' + password + '\n'
     conn.close()
     os.remove(loginDataPath + "-temp")
-    print(output)
+    if saveToFile == 1:
+        outputFile.write(output)
+        outputFile.close()
+    else:
+        print(output)
 else:
     sys.exit('Error: Login Data was not found in the given path!')
